@@ -7,4 +7,16 @@ require 'sequel'
 require 'dotenv'
 
 Dotenv.load
+
+url = ENV['PAGE']
+
+response = HTTParty.get(url)
+doc = Nokogiri::HTML(response.body)
+
+links = doc.css('a[href]')
+scripts = doc.css('script[src]')
+stylesheets = doc.css('link[rel=stylesheet]')
+
+resources = links + scripts + stylesheets
+
 binding.pry
