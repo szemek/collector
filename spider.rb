@@ -64,22 +64,20 @@ class Spider
   end
 
   def persist!
-    db = Sequel.sqlite("#{@host}.sqlite3")
+    @db = Sequel.sqlite("#{@host}.sqlite3")
 
-    db.create_table :resources do
+    persist_collection(@resources, :resources)
+    persist_collection(@visited_links, :visited_links)
+    persist_collection(@bad_uris, :bad_uris)
+  end
+
+  def persist_collection(collection, table_name)
+    @db.create_table(table_name) do
       primary_key :id
       String :url, :unique => true, :null => false
     end
 
-    dataset = db[:resources]
-    @resources.each{|e| dataset.insert(:url => e)}
-
-    db.create_table :bad_uris do
-      primary_key :id
-      String :url, :unique => true, :null => false
-    end
-
-    dataset = db[:bad_uris]
-    @bad_uris.each{|e| dataset.insert(:url => e)}
+    dataset = @db[table_name]
+    collection.each{|e| dataset.insert(:url => e)}
   end
 end
