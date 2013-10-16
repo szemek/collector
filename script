@@ -11,7 +11,7 @@ require 'uri'
 require 'colored'
 
 class Spider
-  attr_accessor :resources
+  attr_accessor :resources, :visited_links, :unvisited_links
 
   def initialize(start_page, host)
     @start_page = start_page
