@@ -11,7 +11,7 @@ require 'uri'
 require 'colored'
 
 class Spider
-  attr_accessor :resources, :visited_links, :unvisited_links
+  attr_accessor :resources, :visited_links, :unvisited_links, :bad_uris
 
   def initialize(start_page, host)
     @start_page = start_page
@@ -19,6 +19,7 @@ class Spider
 
     @visited_links = Set.new
     @unvisited_links = Set.new
+    @bad_uris = Set.new
     @resources = Set.new
   end
 
@@ -36,11 +37,11 @@ class Spider
     response = HTTParty.get(page)
     doc = Nokogiri::HTML(response.body)
 
-    links = resources(doc, 'a[href]', 'href')
+    links = extract_resources(doc, 'a[href]', 'href')
 
-    scripts = resources(doc, 'script[src]', 'src')
-    stylesheets = resources(doc, 'link[rel=stylesheet]', 'href')
-    images = resources(doc, 'img[src]', 'src')
+    scripts = extract_resources(doc, 'script[src]', 'src')
+    stylesheets = extract_resources(doc, 'link[rel=stylesheet]', 'href')
+    images = extract_resources(doc, 'img[src]', 'src')
 
     @resources.merge(scripts + stylesheets + images)
 
@@ -51,7 +52,7 @@ class Spider
     puts "unvisited: #{@unvisited_links.count}".green
   end
 
-  def resources(document, selector, attribute)
+  def extract_resources(document, selector, attribute)
     document.css(selector).map{|e| e[attribute]}.select{|resource| filter_by_host(resource)}
   end
 
@@ -59,6 +60,7 @@ class Spider
     begin
       uri = URI(resource)
     rescue URI::InvalidURIError => error
+      @bad_uris.add(resource)
       puts "#{error.message}".yellow
       return false
     end
