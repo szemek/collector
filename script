@@ -1,22 +1,48 @@
 #!/usr/bin/env ruby
+# encoding: UTF-8
 
 require 'pry'
 require 'httparty'
 require 'nokogiri'
 require 'sequel'
 require 'dotenv'
+require 'set'
+require 'uri'
+require 'colored'
+
+def resources(document, selector, attribute)
+  document.css(selector).map{|e| e[attribute]}
+end
+
+def filter_by_host(resource, host)
+  begin
+    uri = URI(resource)
+  rescue URI::InvalidURIError => error
+    puts "#{error.message}".yellow
+    return false
+  end
+
+  uri.host == host
+end
 
 Dotenv.load
 
-url = ENV['PAGE']
+page = ENV['PAGE']
+host = ENV['HOST']
 
-response = HTTParty.get(url)
+response = HTTParty.get(page)
 doc = Nokogiri::HTML(response.body)
 
-links = doc.css('a[href]')
-scripts = doc.css('script[src]')
-stylesheets = doc.css('link[rel=stylesheet]')
+links = resources(doc, 'a[href]', 'href')
 
-resources = links + scripts + stylesheets
+scripts = resources(doc, 'script[src]', 'src')
+stylesheets = resources(doc, 'link[rel=stylesheet]', 'href')
+images = resources(doc, 'img[src]', 'src')
+
+resources = Set.new(scripts + stylesheets + images)
+resources.select!{|resource| filter_by_host(resource, host)}
+
+links = Set.new(links)
+links.select!{|resource| filter_by_host(resource, host)}
 
 binding.pry
