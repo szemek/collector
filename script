@@ -10,19 +10,46 @@ require 'set'
 require 'uri'
 require 'colored'
 
-def resources(document, selector, attribute)
-  document.css(selector).map{|e| e[attribute]}
-end
+class Spider
+  attr_accessor :links, :resources
 
-def filter_by_host(resource, host)
-  begin
-    uri = URI(resource)
-  rescue URI::InvalidURIError => error
-    puts "#{error.message}".yellow
-    return false
+  def initialize(page, host)
+    @host = host
+
+    @links = Set.new
+    @resources = Set.new
+
+    visit(page)
   end
 
-  uri.host == host
+  def visit(page)
+    response = HTTParty.get(page)
+    doc = Nokogiri::HTML(response.body)
+
+    links = resources(doc, 'a[href]', 'href')
+
+    scripts = resources(doc, 'script[src]', 'src')
+    stylesheets = resources(doc, 'link[rel=stylesheet]', 'href')
+    images = resources(doc, 'img[src]', 'src')
+
+    @resources.merge(scripts + stylesheets + images)
+    @links.merge(links)
+  end
+
+  def resources(document, selector, attribute)
+    document.css(selector).map{|e| e[attribute]}.select{|resource| filter_by_host(resource, @host)}
+  end
+
+  def filter_by_host(resource, host)
+    begin
+      uri = URI(resource)
+    rescue URI::InvalidURIError => error
+      puts "#{error.message}".yellow
+      return false
+    end
+
+    uri.host == host
+  end
 end
 
 Dotenv.load
@@ -30,19 +57,6 @@ Dotenv.load
 page = ENV['PAGE']
 host = ENV['HOST']
 
-response = HTTParty.get(page)
-doc = Nokogiri::HTML(response.body)
-
-links = resources(doc, 'a[href]', 'href')
-
-scripts = resources(doc, 'script[src]', 'src')
-stylesheets = resources(doc, 'link[rel=stylesheet]', 'href')
-images = resources(doc, 'img[src]', 'src')
-
-resources = Set.new(scripts + stylesheets + images)
-resources.select!{|resource| filter_by_host(resource, host)}
-
-links = Set.new(links)
-links.select!{|resource| filter_by_host(resource, host)}
+spider = Spider.new(page, host)
 
 binding.pry
