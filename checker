@@ -11,8 +11,5 @@ Dotenv.load
 page = ENV['PAGE']
 host = ENV['HOST']
 
-spider = Spider.new(page, host)
-spider.run
-spider.persist!
-
-binding.pry
+checker = Checker.new(host)
+checker.run

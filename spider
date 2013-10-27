@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+# encoding: UTF-8
+
+require 'pry'
+require 'dotenv'
+
+require './spider'
+
+Dotenv.load
+
+page = ENV['PAGE']
+host = ENV['HOST']
+
+spider = Spider.new(page, host)
+spider.run
+spider.persist!
