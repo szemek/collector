@@ -64,6 +64,7 @@ class Spider
   end
 
   def persist!
+    `rm -f #{@host}.sqlite3`
     @db = Sequel.sqlite("#{@host}.sqlite3")
 
     persist_collection(@resources, :resources)
