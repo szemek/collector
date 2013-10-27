@@ -4,7 +4,7 @@
 require 'pry'
 require 'dotenv'
 
-require './spider'
+require './checker'
 
 Dotenv.load
 
