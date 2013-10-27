@@ -1,5 +1,6 @@
 require 'sequel'
 require 'httparty'
+require 'colored'
 
 class Checker
   def initialize(host)
@@ -16,9 +17,15 @@ class Checker
   def check_collection(table_name)
     collection = @db[table_name].all
 
-    codes = collection.map{|record| HTTParty.head(record[:url]).code}
-    unique_codes = codes.sort.uniq
+    collection.each do |record|
+      response = HTTParty.head(record[:url])
+      code = response.code
 
-    puts unique_codes.map{|code| {code => codes.count}}
+      if [200].include?(code)
+        puts "#{code}: #{record[:url]}".green
+      else
+        puts "#{code}: #{record[:url]}".red
+      end
+    end
   end
 end
